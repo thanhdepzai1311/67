@@ -1,13 +1,14 @@
 // ==UserScript==
 // @name         Evomớiv4 (0ms Ultra-Fast Attack - Synchronized Weapon Stats)
 // @namespace    http://tampermonkey.net/
-// @version      4.1.1 (Fixed Equal Circle Radius)
+// @version      4.1.0 (Lag Fix & Performance Optimized)
 // @description  MOD EVOWARS.IO VIP BY NLHH (Integrated 0ms Ultra-Fast Attack Engine - Max Reactivity - Synced Stats)
 // @author       #NLHH & KILLER (Upgraded 0ms)
 // @match        https://evowars.io/*
 // @grant        none
 // @license      MIT
 // ==/UserScript==
+
 (function() {
     'use strict';
     let isAuthenticated = false;
@@ -19,8 +20,9 @@
         "EVO-DAY-A1B2": { type: "1 Ngày", duration: 24 * 60 * 60 * 1000 },
         "EVO-DAY-C3D4": { type: "1 Ngày", duration: 24 * 60 * 60 * 1000 },
         "EVO-WEEK-VIP1": { type: "1 Tuần", duration: 7 * 24 * 60 * 60 * 1000 },
-        "1234": { type: "Vĩnh Viễn", duration: Infinity }
+        "1311": { type: "Vĩnh Viễn", duration: Infinity }
     };
+
     // Đồng bộ WEAPON_STATS
     const WEAPON_STATS = {
         0: { distance: 200, degrees: 125 }, 2: { distance: 235, degrees: 90 }, 3: { distance: 245, degrees: 125 },
@@ -38,6 +40,7 @@
         37: { distance: 1300, degrees: 125 }, 38: { distance: 1300, degrees: 125 }, 39: { distance: 1300, degrees: 125 }
     };
     const getWeaponStats = level => WEAPON_STATS[level] || { distance: Math.max(200, level * 30), degrees: 125 };
+
     // Đồng bộ ARC_MULTIPLIERS
     const ARC_MULTIPLIERS = {
         1: 0.6, 2: 0.75, 3: 0.7, 4: 0.75, 5: 0.8, 6: 0.75, 7: 0.76, 8: 0.75, 9: 0.9, 10: 0.95,
@@ -49,6 +52,7 @@
     const getArcMultiplier = (level, defaultMul) => ARC_MULTIPLIERS[Math.floor(level) + 1] || defaultMul;
     window.ultimate_ghostAngle = null;
     window.ultimate_angleLockTime = 0;
+
     const styleElement = document.createElement("style");
     styleElement.innerHTML = `
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap');
@@ -83,11 +87,13 @@
         .btn-mode.active { background: #7c3aed; border-color: #a78bfa; box-shadow: 0 0 8px rgba(124,58,237,0.6); }
     `;
     document.head.appendChild(styleElement);
+
     const config = {
         filter: true, lines: true, hitboxes: true, cooldown: true, playerArc: true, punish: false,
         dodge: false, sprint: false, hunt: false, attack: false, zoom: 1, lvlMin: 0, lvlMax: 200, reachMul: 0.85,
         gameMode: "ffa", lang: "vi", attackHitboxPct: 1
     };
+
     const lockScreen = document.createElement("div");
     lockScreen.id = "evo-lock-screen";
     let keyListHTML = `<div id="evo-key-list-box"><div style="font-weight:bold; color:#fff; margin-bottom:8px; text-align:center; font-size:11px; letter-spacing:1px;">DANH SÁCH KEY HỆ THỐNG</div>`;
@@ -111,10 +117,12 @@
         </div>
     `;
     document.body.appendChild(lockScreen);
+
     const toggleButton = document.createElement("div");
     toggleButton.id = "evo-toggle-btn";
     toggleButton.innerHTML = "🤖";
     document.body.appendChild(toggleButton);
+
     const menuContainer = document.createElement("div");
     menuContainer.innerHTML = `
         <div id="evo-menu">
@@ -169,6 +177,7 @@
         </div>
     `;
     document.body.appendChild(menuContainer);
+
     const menuElement = document.getElementById("evo-menu");
     let menuVisible = false;
     const toggleMenu = () => {
@@ -178,6 +187,7 @@
     };
     toggleButton.addEventListener("click", toggleMenu);
     document.getElementById("evo-close").addEventListener("click", toggleMenu);
+
     let isDragging = false, dragOffsetX, dragOffsetY, menuLeft, menuTop;
     document.getElementById("evo-header").addEventListener("mousedown", e => {
         if (e.target.id === "evo-close") return;
@@ -198,6 +208,7 @@
     });
     document.addEventListener("mouseup", () => isDragging = false);
     menuElement.addEventListener("mousedown", e => e.stopPropagation());
+
     const uiRefs = { menuCheckboxes: {}, panelButtons: {} };
     const syncUI = () => {
         for (let key in uiRefs.menuCheckboxes) {
@@ -218,6 +229,7 @@
             }
         }
     };
+
     const TRANSLATIONS = {
         vi: {
             title: "EVOKID BY NLHH", visuals: "HIỂN THỊ (ESP)", visual_cd: "Đếm ngược CD", blaze: "Cung Blaze", lines: "Đường mục tiêu",
@@ -234,12 +246,14 @@
             p_punish: "True AI Punish (P)", p_dodge: "Auto-Dodge (W)", p_attack: "0ms Attack (C)", p_hunt: "Auto-Hunt (V)", p_sprint: "Auto-Sprint (B)"
         }
     };
+
     const saveConfig = () => localStorage.setItem("evo_ult_cfg_v9", JSON.stringify(config));
     const loadConfig = () => {
         const saved = localStorage.getItem("evo_ult_cfg_v9");
         if (saved) try { Object.assign(config, JSON.parse(saved)); } catch (err) {}
     };
     loadConfig();
+
     const bindCheckbox = (elId, configKey) => {
         const el = document.getElementById(elId);
         if (el) {
@@ -255,6 +269,7 @@
     bindCheckbox("c-filter", "filter"); bindCheckbox("c-lines", "lines"); bindCheckbox("c-hitboxes", "hitboxes");
     bindCheckbox("c-cooldown", "cooldown"); bindCheckbox("c-player-arc", "playerArc"); bindCheckbox("c-punish", "punish");
     bindCheckbox("c-dodge", "dodge"); bindCheckbox("c-sprint", "sprint"); bindCheckbox("c-hunt", "hunt"); bindCheckbox("c-attack", "attack");
+
     const bindSlider = (sliderId, dispId, configKey, showVal = true, suffix = "") => {
         const slider = document.getElementById(sliderId), disp = document.getElementById(dispId);
         if (slider && disp) {
@@ -269,27 +284,35 @@
     };
     bindSlider("c-zoom", "v-zoom", "zoom");
     bindSlider("c-hitbox-pct", "v-hitbox-pct", "attackHitboxPct", false, "%");
+
     document.getElementById("mode-ffa").addEventListener("click", () => { config.gameMode = "ffa"; saveConfig(); syncUI(); });
     document.getElementById("mode-team").addEventListener("click", () => { config.gameMode = "team"; saveConfig(); syncUI(); });
+
     let runtime = null, playerType = null, gameCanvas = null, mouseInstance = null, isAimOverriding = false, aimX = 0, aimY = 0, lastAttackTime = 0, isRightClickHeld = false, lastRightClickTime = 0, centerX = window.innerWidth / 2, centerY = window.innerHeight / 2;
     const enemyTracker = new Map();
+
     // Cache canvas position để tránh giật lag (Reflow Layout Thrashing)
     let cachedCanvasRect = { left: 0, top: 0, width: window.innerWidth, height: window.innerHeight };
     const updateCanvasRect = () => {
         if (gameCanvas) cachedCanvasRect = gameCanvas.getBoundingClientRect();
     };
+
     document.addEventListener("mousemove", e => { if (e.isTrusted) { centerX = e.clientX; centerY = e.clientY; } });
     document.addEventListener("contextmenu", e => { if (e.target === gameCanvas) e.preventDefault(); });
+
     const overlayCanvas = document.createElement("canvas"), ctx = overlayCanvas.getContext("2d");
     document.body.appendChild(overlayCanvas);
     overlayCanvas.style.cssText = "position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:9997;";
+
     window.addEventListener("resize", () => {
         overlayCanvas.width = window.innerWidth;
         overlayCanvas.height = window.innerHeight;
         updateCanvasRect();
     });
     window.dispatchEvent(new Event("resize"));
+
     const getLevel = inst => inst.instance_vars && inst.instance_vars.length > 10 ? inst.instance_vars[10] : 0;
+
     const simulateRightClick = (isDown, x, y) => {
         if (!gameCanvas) return;
         const eventType = isDown ? "mousedown" : "mouseup";
@@ -297,33 +320,44 @@
         gameCanvas.dispatchEvent(new MouseEvent(eventType, opts));
         document.dispatchEvent(new MouseEvent(eventType, opts));
     };
+
     const executeKillerFastAttack = (target, localPlayer, now) => {
         if (!gameCanvas || !target || !localPlayer) return;
+
         lastAttackTime = now;
+
         const atkData = enemyTracker.get(target.uid);
         let predictX = target.x, predictY = target.y;
         if (atkData) { predictX += atkData.vx * 15; predictY += atkData.vy * 15; }
+
         const baseAngleRad = Math.atan2(predictY - localPlayer.y, predictX - localPlayer.x);
         const sweepDistance = 3000;
         const centerX_canvas = cachedCanvasRect.left + (cachedCanvasRect.width * 0.5);
         const centerY_canvas = cachedCanvasRect.top + (cachedCanvasRect.height * 0.5);
+
         const savedAngle = localPlayer.angle;
         let savedVar = undefined;
         if (localPlayer.instance_vars && localPlayer.instance_vars[15] !== undefined) savedVar = localPlayer.instance_vars[15];
+
         const localLevel = getLevel(localPlayer);
         const localWeaponData = getWeaponStats(localLevel);
         const sweepDegrees = localWeaponData.degrees;
         const adjustedAngleRad = baseAngleRad + (sweepDegrees * Math.PI / 180);
         const targetMouseX = centerX_canvas + Math.cos(adjustedAngleRad) * sweepDistance;
         const targetMouseY = centerY_canvas + Math.sin(adjustedAngleRad) * sweepDistance;
+
         if (typeof localPlayer.angle !== 'undefined') localPlayer.angle = adjustedAngleRad;
         if (savedVar !== undefined) localPlayer.instance_vars[15] = adjustedAngleRad;
+
         gameCanvas.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, button: 0, buttons: 1, clientX: targetMouseX, clientY: targetMouseY }));
         gameCanvas.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, button: 0, buttons: 0, clientX: targetMouseX, clientY: targetMouseY }));
+
         if (typeof localPlayer.angle !== 'undefined') localPlayer.angle = savedAngle;
         if (savedVar !== undefined) localPlayer.instance_vars[15] = savedVar;
+
         gameCanvas.dispatchEvent(new MouseEvent('mousemove', { bubbles: true, clientX: aimX || centerX, clientY: aimY || centerY }));
     };
+
     const mainTick = () => {
         if (!isAuthenticated || !runtime || !runtime.running_layout || !playerType) return;
         ctx.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
@@ -340,6 +374,7 @@
             if (isRightClickHeld) { simulateRightClick(false, centerX, centerY); isRightClickHeld = false; }
             return;
         }
+
         const canvasCenterX = cachedCanvasRect.left + cachedCanvasRect.width / 2,
             canvasCenterY = cachedCanvasRect.top + cachedCanvasRect.height / 2,
             scaleX = cachedCanvasRect.width / gameCanvas.width,
@@ -355,8 +390,10 @@
             reachMultiplier = getArcMultiplier(localLevel, config.reachMul),
             maxReach = weaponDistance * reachMultiplier,
             canAttack = true;
+
         let shouldSprint = false, attackTarget = null, attackTargetDist = Infinity, dodgeTarget = null, dodgeTargetDist = Infinity, huntTarget = null, huntTargetDist = Infinity, punishTarget = null, punishTargetDist = Infinity;
         const activeUids = new Set();
+
         // Vẽ vòng thân nhân vật bản thân
         if (config.hitboxes) {
             ctx.beginPath();
@@ -367,14 +404,18 @@
             ctx.lineWidth = 1.5;
             ctx.stroke();
         }
-        ctx.textAlign = "center";
+
+        ctx.textAlign = "center"; // Tối ưu: Đặt định dạng chữ dùng chung ngoài vòng lặp
+
         for (const enemy of playerType.instances) {
             if (enemy.uid === localPlayer.uid || enemy.width <= 0) continue;
             if (config.gameMode === "team" && localPlayer.instance_vars && enemy.instance_vars && localPlayer.instance_vars[36] !== undefined && localPlayer.instance_vars[36] === enemy.instance_vars[36]) continue;
+
             activeUids.add(enemy.uid);
             if (!enemyTracker.has(enemy.uid)) enemyTracker.set(enemy.uid, { wasInThreat: false, attackStart: 0, lastX: enemy.x, lastY: enemy.y, vx: 0, vy: 0 });
             const enemyData = enemyTracker.get(enemy.uid);
             enemyData.vx = enemy.x - enemyData.lastX; enemyData.vy = enemy.y - enemyData.lastY; enemyData.lastX = enemy.x; enemyData.lastY = enemy.y;
+
             const dx = localPlayer.x - enemy.x,
                   dy = localPlayer.y - enemy.y,
                   distToEnemy = Math.hypot(dx, dy),
@@ -383,24 +424,28 @@
                   enemyWeaponData = getWeaponStats(enemyLevel),
                   enemyReachMul = getArcMultiplier(enemyLevel, config.reachMul),
                   enemyMaxReach = enemyWeaponData.distance * enemyReachMul,
-                  // ĐÃ CHỈNH: Sử dụng kích thước bán kính của bản thân (localRadius) cho cả đối thủ
-                  enemyRadius = localRadius,
+                  enemyRadius = enemy.width * 0.5,
                   enemyScreenX = canvasCenterX + (enemy.x - scrollX) * layerScale * scaleX,
                   enemyScreenY = canvasCenterY + (enemy.y - scrollY) * layerScale * scaleY;
+
             let isValidTarget = true;
             if (config.filter && localLevel > enemyLevel && localLevel - enemyLevel >= 15) isValidTarget = false;
             const isInLevelRange = enemyLevel >= config.lvlMin && enemyLevel <= config.lvlMax && isValidTarget;
+
             let threatBuffer = enemyLevel >= localLevel ? 90 : 50;
             if (enemyLevelFloored === 27 || enemyLevelFloored === 28) threatBuffer += 130;
             const threatRange = enemyMaxReach + localRadius + threatBuffer, isInThreat = distToEnemy < threatRange, isApproaching = enemyData.vx * dx + enemyData.vy * dy < 0;
+
             if (isInThreat && !enemyData.wasInThreat && (isApproaching || distToEnemy < enemyMaxReach)) enemyData.attackStart = now;
             enemyData.wasInThreat = isInThreat;
+
             if (config.playerArc && isInLevelRange) {
                 ctx.beginPath(); ctx.arc(enemyScreenX, enemyScreenY, enemyMaxReach * layerScale * scaleX, 0, Math.PI * 2); ctx.strokeStyle = isInThreat ? "rgba(239, 68, 68, 0.8)" : "rgba(251, 191, 36, 0.4)"; ctx.lineWidth = 1.5;
                 if (ctx.setLineDash) ctx.setLineDash([4, 4]);
                 ctx.stroke();
                 if (ctx.setLineDash) ctx.setLineDash([]);
             }
+
             const maxCooldown = Math.max(800, enemyLevel * 60);
             let isSwinging = false, isOnCooldown = false, timeSinceAttack = 0;
             if (enemyData.attackStart) {
@@ -408,23 +453,28 @@
                 if (timeSinceAttack < 300) isSwinging = true;
                 else if (timeSinceAttack < maxCooldown) isOnCooldown = true;
             }
+
             if (isSwinging && isInThreat) { if (distToEnemy < dodgeTargetDist) { dodgeTargetDist = distToEnemy; dodgeTarget = enemy; } }
             else {
                 if (!canAttack && !isOnCooldown && distToEnemy < threatRange + 60) { if (distToEnemy < dodgeTargetDist) { dodgeTargetDist = distToEnemy; dodgeTarget = enemy; } }
                 else if (!isOnCooldown && enemyLevel >= localLevel && isInThreat) { if (distToEnemy < dodgeTargetDist) { dodgeTargetDist = distToEnemy; dodgeTarget = enemy; } }
             }
+
             if (config.punish && isInLevelRange && (isOnCooldown || (isSwinging && !isInThreat))) { if (distToEnemy < punishTargetDist) { punishTargetDist = distToEnemy; punishTarget = enemy; } }
             else if (isInLevelRange && enemyLevel < localLevel) { if (distToEnemy < huntTargetDist) { huntTargetDist = distToEnemy; huntTarget = enemy; } }
+
             // TÍNH TOÁN ĐỘ LẤN CỦA TẦM KIẾM VÀO VÒNG ĐỐI THỦ
             if (distToEnemy <= maxReach + enemyRadius) {
                 const overlapDepth = (maxReach + enemyRadius) - distToEnemy;
                 const overlapPercent = (overlapDepth / (2 * enemyRadius)) * 100;
+
                 if (isInLevelRange && overlapPercent >= config.attackHitboxPct && distToEnemy < attackTargetDist) {
                     attackTargetDist = distToEnemy;
                     attackTarget = enemy;
                 }
             }
-            // Vẽ vòng thân đối thủ (với bán kính bằng bản thân)
+
+            // Vẽ vòng thân đối thủ
             const enemyRadiusScaled = enemyRadius * layerScale * scaleX;
             if (config.hitboxes) {
                 ctx.beginPath();
@@ -432,9 +482,11 @@
                 if (isSwinging) { ctx.fillStyle = "rgba(239, 68, 68, 0.3)"; ctx.fill(); ctx.strokeStyle = "#ef4444"; ctx.lineWidth = 2.5; ctx.stroke(); }
                 else if (isOnCooldown) { ctx.fillStyle = "rgba(251, 191, 36, 0.2)"; ctx.fill(); ctx.strokeStyle = "#fbbf24"; ctx.lineWidth = 2.5; ctx.stroke(); }
                 else { ctx.fillStyle = isInLevelRange && enemyLevel <= localLevel ? "rgba(34, 197, 94, 0.1)" : "rgba(239, 68, 68, 0.1)"; ctx.fill(); ctx.strokeStyle = isInLevelRange && enemyLevel <= localLevel ? "#22c55e" : isInLevelRange ? "#ef4444" : "#9ca3af"; ctx.lineWidth = 1.5; ctx.stroke(); }
+
                 const labelY = enemyScreenY - enemyRadiusScaled - 12;
                 ctx.font = "900 12px Inter, sans-serif"; ctx.lineWidth = 3; ctx.strokeStyle = "#000000"; ctx.strokeText("Lv." + enemyLevelFloored, enemyScreenX, labelY); ctx.fillStyle = isInLevelRange ? "#ffffff" : "#9ca3af"; ctx.fillText("Lv." + enemyLevelFloored, enemyScreenX, labelY);
             }
+
             if (config.cooldown) {
                 if (isSwinging) { ctx.fillStyle = "#ef4444"; ctx.strokeStyle = "#000"; ctx.lineWidth = 3; ctx.font = "900 13px Inter"; ctx.strokeText("⚔️ SWINGING!", enemyScreenX, enemyScreenY - enemyRadiusScaled - 30); ctx.fillText("⚔️ SWINGING!", enemyScreenX, enemyScreenY - enemyRadiusScaled - 30); }
                 else if (isOnCooldown) {
@@ -447,6 +499,7 @@
             if (config.lines && isInLevelRange) { ctx.beginPath(); ctx.moveTo(localScreenX, localScreenY); ctx.lineTo(enemyScreenX, enemyScreenY); ctx.strokeStyle = isSwinging ? "#ef4444" : isOnCooldown ? "#fbbf24" : distToEnemy < threatRange + 50 ? "rgba(239, 68, 68, 0.6)" : "rgba(168, 85, 247, 0.3)"; ctx.lineWidth = isOnCooldown || isSwinging ? 2 : 1; ctx.stroke(); }
         }
         for (const uid of enemyTracker.keys()) { if (!activeUids.has(uid)) enemyTracker.delete(uid); }
+
         if (config.dodge && dodgeTarget) {
             isAimOverriding = true;
             const dodgeDx = localPlayer.x - dodgeTarget.x, dodgeDy = localPlayer.y - dodgeTarget.y, dodgeDist = Math.hypot(dodgeDx, dodgeDy);
@@ -466,17 +519,21 @@
             aimX = canvasCenterX + (huntDx / huntDist) * 800; aimY = canvasCenterY + (huntDy / huntDist) * 800;
             if (config.sprint) shouldSprint = true;
         } else { isAimOverriding = false; aimX = centerX; aimY = centerY; }
+
         if (config.playerArc) {
             let cursorX = isAimOverriding ? aimX : centerX, cursorY = isAimOverriding ? aimY : centerY, worldCursorX = (cursorX - canvasCenterX) / (layerScale * scaleX) + scrollX, worldCursorY = (cursorY - canvasCenterY) / (layerScale * scaleY) + scrollY, aimAngle = window.ultimate_ghostAngle !== null ? window.ultimate_ghostAngle : Math.atan2(worldCursorY - localPlayer.y, worldCursorX - localPlayer.x) * 180 / Math.PI, arcStart = aimAngle * Math.PI / 180 - weaponDegrees * Math.PI / 180;
             ctx.beginPath(); ctx.arc(localScreenX, localScreenY, weaponDistance * layerScale * scaleX, arcStart - 1.09, arcStart + 1.09, false); ctx.strokeStyle = "rgba(0, 255, 0, 0.2)"; ctx.lineWidth = 1; ctx.stroke();
             ctx.beginPath(); ctx.moveTo(localScreenX, localScreenY); ctx.arc(localScreenX, localScreenY, maxReach * layerScale * scaleX, arcStart - 1.09, arcStart + 1.09, false); ctx.lineTo(localScreenX, localScreenY); ctx.fillStyle = "rgba(0, 255, 0, 0.05)"; ctx.fill(); ctx.strokeStyle = "rgba(0, 255, 0, 0.4)"; ctx.lineWidth = 1.5; ctx.stroke();
             ctx.beginPath(); ctx.arc(localScreenX, localScreenY, maxReach * layerScale * scaleX, 0, Math.PI * 2, false); ctx.strokeStyle = "rgba(0, 243, 255, 0.75)"; ctx.lineWidth = 2; ctx.stroke(); ctx.fillStyle = "rgba(0, 243, 255, 0.015)"; ctx.fill();
         }
+
         if (isAimOverriding && mouseInstance) { mouseInstance.mouseXcanvas = aimX; mouseInstance.mouseYcanvas = aimY; }
         if (shouldSprint) { if (!isRightClickHeld || now - lastRightClickTime > 50) { simulateRightClick(true, aimX || centerX, aimY || centerY); isRightClickHeld = true; lastRightClickTime = now; } }
         else if (isRightClickHeld) { simulateRightClick(false, centerX, centerY); isRightClickHeld = false; }
+
         if (config.attack && attackTarget) executeKillerFastAttack(attackTarget, localPlayer, now);
     };
+
     const animationLoop = () => {
         try {
             if (isAuthenticated && runtime && runtime.running_layout) {
@@ -491,6 +548,7 @@
         } catch {}
         requestAnimationFrame(animationLoop);
     };
+
     const hookGame = () => {
         gameCanvas = runtime.canvas;
         updateCanvasRect();
@@ -513,16 +571,19 @@
         for (const type_ of runtime.types_by_index) { if (type_ && type_.instvar_sids && type_.instvar_sids.length === 72) { playerType = type_; break; } }
         animationLoop();
     };
+
     const createShortcutPanel = () => {
         const panel = document.createElement("div");
         panel.style.cssText = "position: fixed; bottom: 20px; right: 20px; background: rgba(12,10,18,0.85); backdrop-filter: blur(8px); border: 1px solid #4a2080; border-radius: 12px; padding: 12px; display: flex; flex-direction: column; gap: 10px; z-index: 99999; font-family: Inter, sans-serif; box-shadow: 0 10px 30px rgba(0,0,0,0.6); opacity: 0.5; transition: all 0.3s ease; transform: scale(0.75); transform-origin: bottom right;";
         panel.addEventListener("mouseenter", () => { panel.style.opacity = "1"; panel.style.background = "rgba(12,10,18,0.98)"; });
         panel.addEventListener("mouseleave", () => { panel.style.opacity = "0.5"; panel.style.background = "rgba(12,10,18,0.85)"; });
         document.body.appendChild(panel);
+
         const inner = document.createElement("div");
         inner.id = "evo-expire-disp";
         inner.style.cssText = "color: #34d399; font-size: 11px; font-weight: bold; text-align: center; margin-bottom: 8px; border-bottom: 1px dashed #4a2080; padding-bottom: 8px; letter-spacing: 0.5px; min-height:15px;";
         panel.appendChild(inner);
+
         const storedKey = localStorage.getItem("evo_active_key");
         if (storedKey && VALID_KEYS[storedKey]) {
             const expTime = localStorage.getItem("evo_key_expire");
@@ -540,6 +601,7 @@
                 updateRemaining(); setInterval(updateRemaining, 1000);
             }
         }
+
         const addBtn = (event, changed, el) => {
             const updateFn = document.createElement("div"), key = () => {
                 const label = TRANSLATIONS[config.lang][event];
@@ -552,8 +614,10 @@
             updateFn.addEventListener("click", () => { config[changed] = !config[changed]; saveConfig(); syncUI(); });
             key(); panel.appendChild(updateFn); uiRefs.panelButtons[changed] = key;
         };
+
         addBtn("p_filter", "filter", "🔍"); addBtn("p_punish", "punish", "🤖"); addBtn("p_dodge", "dodge", "🏃");
         addBtn("p_attack", "attack", "⚔️"); addBtn("p_hunt", "hunt", "🎯"); addBtn("p_sprint", "sprint", "⚡");
+
         const modeBtn = document.createElement("div");
         modeBtn.style.cssText = "padding: 8px 12px; border-radius: 6px; cursor: pointer; color: #fff; font-size: 12px; font-weight: bold; display: flex; justify-content: space-between; gap: 15px; transition: 0.2s;";
         const updateModeBtn = () => {
@@ -566,6 +630,7 @@
         };
         modeBtn.addEventListener("click", () => { config.gameMode = config.gameMode === "ffa" ? "team" : "ffa"; saveConfig(); syncUI(); });
         updateModeBtn(); panel.appendChild(modeBtn); uiRefs.panelButtons["gameMode"] = updateModeBtn;
+
         syncUI();
         document.addEventListener("keydown", event => {
             if (document.activeElement.tagName === "INPUT") return;
@@ -583,6 +648,7 @@
             if (changed) { saveConfig(); syncUI(); }
         });
     };
+
     const applyTranslation = () => {
         const langStrings = TRANSLATIONS[config.lang];
         document.querySelectorAll("[data-i18n]").forEach(el => {
@@ -592,6 +658,7 @@
         document.getElementById("evo-lang-btn").textContent = config.lang === "vi" ? "🇲🇳 VN" : "🇺🇸 EN";
         syncUI();
     };
+
     const activateMod = () => {
         isAuthenticated = true;
         if (lockScreen) lockScreen.remove();
@@ -600,6 +667,7 @@
         menuElement.style.display = "flex";
         const pollInterval = setInterval(() => { if (window.cr_getC2Runtime && (runtime = window.cr_getC2Runtime())) { clearInterval(pollInterval); hookGame(); createShortcutPanel(); } }, 500);
     };
+
     const checkSavedKey = () => {
         const savedKey = localStorage.getItem("evo_active_key");
         const expireTime = localStorage.getItem("evo_key_expire");
@@ -612,6 +680,7 @@
         }
         return false;
     };
+
     setTimeout(() => {
         if (checkSavedKey()) return;
         const btnSubmit = document.getElementById("evo-btn-submit");
